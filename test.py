@@ -42,10 +42,9 @@ parser.add_argument('--input_size', default=512, type=int,
 #     filled = cv2.drawContours(filled.copy(), contours, -1, 255, -1)
 #     return filled
 
-def gaussian(u, n):
-    sigma = n >> 1
+def gaussian(u, sigma, n):
     x = np.arange(n)
-    y = np.exp(-(x - u) ** 2 / (2 * sigma ** 2))
+    y = np.exp(-(x - u) ** 2 / (2 * sigma ** 2)) / (np.sqrt(2 * np.pi) * sigma)
     return y
 
 
@@ -74,7 +73,6 @@ if __name__ == '__main__':
             # 获取对称轴坐标
             symmetry_axis, r, theta, draw_symmetry = symmetry.detecting_mirrorLine(img, gray)
             asymmetry_lines = np.zeros_like(binary, np.uint8)
-            thick = 30
             # 去除纵向标注
             for line in lines:
                 x0, y0, x1, y1 = [int(val) for val in line]
@@ -84,18 +82,15 @@ if __name__ == '__main__':
                 x_mir_mid = (x0_mir + x1_mir) >> 1
                 # 判断直线对称镜像是否在图像内部
                 is_inside = (np.abs(x_mir_mid - binary.shape[1] >> 1) +
-                             np.abs((x1 - x0) >> 1) + thick >> 1) < binary.shape[1] >> 1
+                             np.abs((x1 - x0) >> 1)) < binary.shape[1] >> 1
                 if is_inside:
-                    mask = ~np.zeros_like(binary, np.uint8)
-                    gauss_k = gaussian(x_mid, binary.shape[1]).reshape(-1, 1)
-                    mask = np.multiply(mask, gauss_k)
-                    mask_mir = ~np.zeros_like(binary, np.uint8)
-                    gauss_k_mir = gaussian(x_mir_mid, binary.shape[1])
+                    mask = gaussian(x_mid, 3, binary.shape[1]).reshape(1, -1)
+                    mask_mir = gaussian(x_mir_mid, 3, binary.shape[1]).reshape(1, -1)
                     # 获取直线与其镜像直线附近的非0像素个数
-                    cnt = cv2.bitwise_and(binary, mask).sum()
-                    cnt_mir = cv2.bitwise_and(binary, mask_mir).sum()
+                    cnt = np.multiply(binary, mask).sum()
+                    cnt_mir = np.multiply(binary, mask_mir).sum()
                     # 比较直线与其镜像直线附近点数
-                    if cnt_mir < (cnt * 0.1):
+                    if cnt_mir < (cnt * 0.2):
                         asymmetry_lines = cv2.line(asymmetry_lines, (x0, y0), (x1, y1), 255, 15)
                 # 当直线对称镜像不在图像内部时，直接去除该直线
                 else:
