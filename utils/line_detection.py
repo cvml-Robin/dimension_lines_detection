@@ -131,9 +131,9 @@ def pred_squares(image, interpreter, input_details, output_details, input_shape,
 
         deg = theta[max_indice]
         # 保留竖直直线
-        if 170 <= deg <= 180:
+        if 175 <= deg <= 180:
             merged_segments.append([x_min, y_max, x_max, y_min])
-        elif 0 <= deg <= 10:
+        elif 0 <= deg <= 5:
             merged_segments.append([x_min, y_min, x_max, y_max])
 
     # 2. get intersections

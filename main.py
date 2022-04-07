@@ -100,13 +100,9 @@ if __name__ == '__main__':
             rows, cols = img.shape[0], img.shape[1]
             # 拼接原图、对称轴图、直线检测图与最终结果图
             result = np.zeros((rows * 2, cols * 2, 3), np.uint8)
-            # 原图
             result[0:rows, 0:cols, :] = img
-            # 直线检测图
             result[rows:rows * 2, 0:cols, :] = draw_lines
-            # 对称轴检测图
             result[0:rows, cols:cols * 2, :] = draw_symmetry
-            # 最终结果图
             result[rows:rows * 2, cols:cols * 2, :] = out
             # 保存图片
             save_path = save_dir + '/' + img_dir + '/output_' + img_name
