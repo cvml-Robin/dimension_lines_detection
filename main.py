@@ -1,9 +1,9 @@
-import os
-import cv2
-from utils import line_detection, symmetry
-import numpy as np
-import time
 import argparse
+import os
+import time
+import cv2
+import numpy as np
+from utils import line_detection, symmetry
 
 # config
 parser = argparse.ArgumentParser()
@@ -12,7 +12,7 @@ parser.add_argument('--input_dir', default='datasets', type=str)
 parser.add_argument('--results_dir', default='results', type=str)
 
 # MLSD parameter
-parser.add_argument('--score_thr', default=0.10, type=float,
+parser.add_argument('--score_thr', default=0.20, type=float,
                     help='Discard center points when the score < score_thr.')
 parser.add_argument('--tflite_path', default='./tflite_models/M-LSD_512_large_fp16.tflite', type=str)
 parser.add_argument('--input_size', default=512, type=int,
@@ -66,8 +66,8 @@ if __name__ == '__main__':
             lines, draw_lines = line_detection.mlsd(img, args)
             # 获取对称轴坐标
             symmetry_axis, r, theta, draw_symmetry = symmetry.detecting_mirrorLine(img, gray)
-            asymmetry_lines = np.zeros_like(binary, np.uint8)
-            thick = 30
+            temp = binary.copy()
+            thick = 20
             # 去除纵向标注
             for line in lines:
                 x0, y0, x1, y1 = [int(val) for val in line]
@@ -86,12 +86,9 @@ if __name__ == '__main__':
                     cnt = (cv2.bitwise_and(binary, mask) != 0).sum()
                     cnt_mir = (cv2.bitwise_and(binary, mask_mir) != 0).sum()
                     # 比较直线与其镜像直线附近点数
-                    if cnt_mir < (cnt * 0.1):
-                        asymmetry_lines = cv2.line(asymmetry_lines, (x0, y0), (x1, y1), 255, 15)
-                # 当直线对称镜像不在图像内部时，直接去除该直线
-                else:
-                    asymmetry_lines = cv2.line(asymmetry_lines, (x0, y0), (x1, y1), 255, 15)
-            temp = cv2.bitwise_and(binary, ~asymmetry_lines)
+                    if cnt_mir > (cnt * 0.3):
+                        continue
+                temp = cv2.line(temp, (x0, y0), (x1, y1), 0, 15)
             out = np.zeros_like(img, np.uint8)
             out[:, :, 0] = temp
             out[:, :, 1] = temp
