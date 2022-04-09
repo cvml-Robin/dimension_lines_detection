@@ -143,7 +143,7 @@ def pred_squares(image, interpreter, input_details, output_details, input_shape,
     new_segments[:, 1] = new_segments[:, 1] * 2 / input_shape[0] * original_shape[0]
     new_segments[:, 2] = new_segments[:, 2] * 2 / input_shape[1] * original_shape[1]
     new_segments[:, 3] = new_segments[:, 3] * 2 / input_shape[0] * original_shape[0]
-
+    new_segments = new_segments * (new_segments >= 0)
     return new_segments
 
 
