@@ -8,7 +8,7 @@ from utils import lsd_lines, symmetry
 # config
 parser = argparse.ArgumentParser()
 # 数据集与输出路径
-parser.add_argument('--input_dir', default='datasets', type=str)
+parser.add_argument('--input_dir', default='demo', type=str)
 parser.add_argument('--results_dir', default='results', type=str)
 
 
