@@ -3,7 +3,7 @@ import os
 import time
 import cv2
 import numpy as np
-from utils import line_detection, symmetry
+from utils import lsd_lines, symmetry
 
 # config
 parser = argparse.ArgumentParser()
@@ -11,35 +11,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--input_dir', default='datasets', type=str)
 parser.add_argument('--results_dir', default='results', type=str)
 
-# MLSD parameter
-parser.add_argument('--score_thr', default=0.20, type=float,
-                    help='Discard center points when the score < score_thr.')
-parser.add_argument('--tflite_path', default='./tflite_models/M-LSD_512_large_fp16.tflite', type=str)
-parser.add_argument('--input_size', default=512, type=int,
-                    help='The size of input images.')
 
-# 寻找最大连通域并填充
-# def findTower(image):
-#     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(image, connectivity=8)
-#
-#     tower = np.zeros(image.shape, np.uint8)
-#
-#     # 最大连通域序号
-#     target = np.argmax(stats[1:, -1]) + 1
-#
-#     for i in range(1, num_labels):
-#
-#         filled = labels == i
-#         if i == target:
-#             tower[filled] = 255
-#         else:
-#             tower[filled] = 0
-#
-#     contours, _ = cv2.findContours(tower, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-#     # 填充轮廓内部
-#     filled = np.zeros(tower.shape, np.uint8)
-#     filled = cv2.drawContours(filled.copy(), contours, -1, 255, -1)
-#     return filled
+def gaussian(u, sigma, n):
+    x = np.arange(n)
+    y = np.exp(-(x - u) ** 2 / (2 * sigma ** 2)) / (np.sqrt(2 * np.pi) * sigma)
+    return y
 
 
 if __name__ == '__main__':
@@ -63,32 +39,30 @@ if __name__ == '__main__':
             # 二值化
             _, binary = cv2.threshold(gray, 245, 255, cv2.THRESH_BINARY_INV)
             # 直线检测
-            lines, draw_lines = line_detection.mlsd(img, args)
+            lines, _, draw_lines, _ = lsd_lines.detectlines(gray, img)
             # 获取对称轴坐标
             symmetry_axis, r, theta, draw_symmetry = symmetry.detecting_mirrorLine(img, gray)
             temp = binary.copy()
-            thick = 20
             # 去除纵向标注
             for line in lines:
                 x0, y0, x1, y1 = [int(val) for val in line]
                 x0_mir = int(symmetry_axis * 2) - x0
                 x1_mir = int(symmetry_axis * 2) - x1
+                x_mid = (x0 + x1) >> 1
                 x_mir_mid = (x0_mir + x1_mir) >> 1
                 # 判断直线对称镜像是否在图像内部
                 is_inside = (np.abs(x_mir_mid - binary.shape[1] >> 1) +
-                             np.abs((x1 - x0) >> 1) + thick >> 1) < binary.shape[1] >> 1
+                             np.abs((x1 - x0) >> 1)) < binary.shape[1] >> 1
                 if is_inside:
-                    mask = np.zeros_like(binary, np.uint8)
-                    mask = cv2.line(mask, (x0, y0), (x1, y1), 255, thick)
-                    mask_mir = np.zeros_like(binary, np.uint8)
-                    mask_mir = cv2.line(mask_mir, (x0_mir, y0), (x1_mir, y1), 255, thick)
+                    mask = gaussian(x_mid, 3, binary.shape[1]).reshape(1, -1)
+                    mask_mir = gaussian(x_mir_mid, 3, binary.shape[1]).reshape(1, -1)
                     # 获取直线与其镜像直线附近的非0像素个数
-                    cnt = (cv2.bitwise_and(binary, mask) != 0).sum()
-                    cnt_mir = (cv2.bitwise_and(binary, mask_mir) != 0).sum()
+                    cnt = np.multiply(binary, mask).sum()
+                    cnt_mir = np.multiply(binary, mask_mir).sum()
                     # 比较直线与其镜像直线附近点数
-                    if cnt_mir > (cnt * 0.3):
+                    if cnt_mir > (cnt * 0.2):
                         continue
-                temp = cv2.line(temp, (x0, y0), (x1, y1), 0, 12)
+                temp = cv2.line(temp, (x0, y0), (x1, y1), 0, 15)
             out = np.zeros_like(img, np.uint8)
             out[:, :, 0] = temp
             out[:, :, 1] = temp
