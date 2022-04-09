@@ -18,7 +18,7 @@ parser.add_argument('--tflite_path', default='./tflite_models/M-LSD_512_large_fp
 parser.add_argument('--input_size', default=512, type=int,
                     help='The size of input images.')
 
-# # 寻找最大连通域并填充
+# 寻找最大连通域并填充
 # def findTower(image):
 #     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(image, connectivity=8)
 #
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                     # 比较直线与其镜像直线附近点数
                     if cnt_mir > (cnt * 0.3):
                         continue
-                temp = cv2.line(temp, (x0, y0), (x1, y1), 0, 15)
+                temp = cv2.line(temp, (x0, y0), (x1, y1), 0, 12)
             out = np.zeros_like(img, np.uint8)
             out[:, :, 0] = temp
             out[:, :, 1] = temp

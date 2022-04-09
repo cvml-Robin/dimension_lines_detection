@@ -3,7 +3,7 @@ import os
 import time
 import cv2
 import numpy as np
-from utils import line_detection, symmetry
+from utils import lsdlines, symmetry
 
 # config
 parser = argparse.ArgumentParser()
@@ -11,12 +11,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--input_dir', default='datasets', type=str)
 parser.add_argument('--results_dir', default='results', type=str)
 
-# MLSD parameter
-parser.add_argument('--score_thr', default=0.20, type=float,
-                    help='Discard center points when the score < score_thr.')
-parser.add_argument('--tflite_path', default='./tflite_models/M-LSD_512_large_fp16.tflite', type=str)
-parser.add_argument('--input_size', default=512, type=int,
-                    help='The size of input images.')
+# # MLSD parameter
+# parser.add_argument('--score_thr', default=0.20, type=float,
+#                     help='Discard center points when the score < score_thr.')
+# parser.add_argument('--tflite_path', default='./tflite_models/M-LSD_512_large_fp16.tflite', type=str)
+# parser.add_argument('--input_size', default=512, type=int,
+#                     help='The size of input images.')
 
 
 # # 寻找最大连通域并填充
@@ -69,7 +69,7 @@ if __name__ == '__main__':
             # 二值化
             _, binary = cv2.threshold(gray, 245, 255, cv2.THRESH_BINARY_INV)
             # 直线检测
-            lines, draw_lines = line_detection.mlsd(img, args)
+            lines, _, draw_lines, _ = lsdlines.detectlines(gray, img)
             # 获取对称轴坐标
             symmetry_axis, r, theta, draw_symmetry = symmetry.detecting_mirrorLine(img, gray)
             temp = binary.copy()
